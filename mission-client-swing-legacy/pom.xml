@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.albertonavas.missionbriefing</groupId>
+        <artifactId>mission-briefing-planner</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>mission-client-swing-legacy</artifactId>
+    <packaging>jar</packaging>
+    <name>mission-client-swing-legacy</name>
+    <description>
+        Modulo "heredado" en Swing: el visor de mapa (jxmapviewer2, tiles OpenStreetMap),
+        pensado para integrarse en el cliente JavaFX via SwingNode en vez de reescribirse.
+        Sustituye a Luciad (SDK de mapas propietario) por una libreria equivalente libre.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.albertonavas.missionbriefing</groupId>
+            <artifactId>mission-model</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jxmapviewer</groupId>
+            <artifactId>jxmapviewer2</artifactId>
+            <version>${jxmapviewer2.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- este modulo abre componentes AWT/Swing; los agentes CI no tienen pantalla -->
+                    <argLine>-Djava.awt.headless=true</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

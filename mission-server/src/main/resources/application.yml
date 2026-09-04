@@ -1,0 +1,19 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: mission-server
+  datasource:
+    url: jdbc:postgresql://localhost:5432/missionbriefing
+    username: missionbriefing
+    password: missionbriefing
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+  elasticsearch:
+    uris: http://localhost:9200
