@@ -34,7 +34,10 @@ public class LegacyMapPanel extends JPanel {
     public LegacyMapPanel() {
         super(new BorderLayout());
 
-        TileFactoryInfo info = new OSMTileFactoryInfo();
+        // El constructor sin argumentos de OSMTileFactoryInfo apunta a
+        // http://tile.openstreetmap.org (HTTP, sin subdominio), que la politica actual de
+        // OpenStreetMap ya no sirve. Se fuerza HTTPS explicitamente.
+        TileFactoryInfo info = new OSMTileFactoryInfo("OpenStreetMap", "https://tile.openstreetmap.org");
         DefaultTileFactory tileFactory = new DefaultTileFactory(info);
         mapViewer.setTileFactory(tileFactory);
         mapViewer.setZoom(DEFAULT_ZOOM);
