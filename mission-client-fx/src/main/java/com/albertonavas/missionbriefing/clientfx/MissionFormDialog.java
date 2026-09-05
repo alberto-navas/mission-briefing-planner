@@ -5,6 +5,9 @@ import com.albertonavas.missionbriefing.clientfx.dto.CreatePhaseRequestDto;
 import com.albertonavas.missionbriefing.clientfx.dto.CreateResourceRequestDto;
 import com.albertonavas.missionbriefing.clientfx.dto.CreateWaypointRequestDto;
 import com.albertonavas.missionbriefing.clientfx.dto.MissionDto;
+import com.albertonavas.missionbriefing.clientfx.dto.PhaseDto;
+import com.albertonavas.missionbriefing.clientfx.dto.ResourceDto;
+import com.albertonavas.missionbriefing.clientfx.dto.WaypointDto;
 import com.albertonavas.missionbriefing.model.MissionType;
 import com.albertonavas.missionbriefing.model.ResourceType;
 import com.albertonavas.missionbriefing.model.TaskType;
@@ -38,15 +41,16 @@ import javafx.stage.Stage;
 import javafx.stage.Window;
 
 /**
- * Formulario para crear una mision desde el propio cliente de escritorio, en vez de
- * solo por API. Monta el mismo JSON que ya acepta {@code POST /api/missions} -- no
- * necesita ningun endpoint nuevo en el servidor.
+ * Formulario para crear o editar una mision desde el propio cliente de escritorio, en
+ * vez de solo por API. Monta el mismo JSON que ya aceptan {@code POST}/{@code PUT}
+ * {@code /api/missions} -- no necesita ningun endpoint nuevo en el servidor.
  */
-final class NewMissionDialog {
+final class MissionFormDialog {
 
     private final Stage stage;
     private final ApiClient apiClient;
-    private final Runnable onCreated;
+    private final Runnable onSaved;
+    private final MissionDto existing;
 
     private final TextField nameField = new TextField();
     private final ComboBox<MissionType> typeField = new ComboBox<>(FXCollections.observableArrayList(MissionType.values()));
@@ -61,24 +65,34 @@ final class NewMissionDialog {
     private final VBox phaseRows = new VBox(4);
     private final VBox resourceRows = new VBox(4);
     private final Label errorLabel = new Label();
-    private final Button createButton = new Button("Crear misión");
+    private final Button saveButton;
 
-    private NewMissionDialog(Window owner, ApiClient apiClient, Runnable onCreated) {
+    private MissionFormDialog(Window owner, ApiClient apiClient, MissionDto existing, Runnable onSaved) {
         this.apiClient = apiClient;
-        this.onCreated = onCreated;
+        this.existing = existing;
+        this.onSaved = onSaved;
+        this.saveButton = new Button(existing == null ? "Crear misión" : "Guardar cambios");
         this.stage = new Stage();
         stage.initOwner(owner);
         stage.initModality(Modality.WINDOW_MODAL);
-        stage.setTitle("Nueva misión");
+        stage.setTitle(existing == null ? "Nueva misión" : "Editar misión");
         stage.setScene(new Scene(buildRoot(), 620, 640));
     }
 
-    static void show(Window owner, ApiClient apiClient, Runnable onCreated) {
-        new NewMissionDialog(owner, apiClient, onCreated).stage.show();
+    static void showCreate(Window owner, ApiClient apiClient, Runnable onSaved) {
+        new MissionFormDialog(owner, apiClient, null, onSaved).stage.show();
+    }
+
+    static void showEdit(Window owner, ApiClient apiClient, MissionDto existing, Runnable onSaved) {
+        new MissionFormDialog(owner, apiClient, existing, onSaved).stage.show();
     }
 
     private javafx.scene.layout.Region buildRoot() {
-        typeField.getSelectionModel().selectFirst();
+        if (existing != null) {
+            prefill(existing);
+        } else {
+            typeField.getSelectionModel().selectFirst();
+        }
 
         GridPane form = new GridPane();
         form.setHgap(8);
@@ -100,30 +114,58 @@ final class NewMissionDialog {
                 form,
                 sectionLabel("Waypoints"),
                 waypointRows,
-                addButton("+ Waypoint", () -> waypointRows.getChildren().add(newWaypointRow())),
+                addButton("+ Waypoint", () -> waypointRows.getChildren().add(newWaypointRow(null))),
                 sectionLabel("Fases"),
                 phaseRows,
-                addButton("+ Fase", () -> phaseRows.getChildren().add(newPhaseRow())),
+                addButton("+ Fase", () -> phaseRows.getChildren().add(newPhaseRow(null))),
                 sectionLabel("Escoltas"),
                 resourceRows,
-                addButton("+ Escolta", () -> resourceRows.getChildren().add(newResourceRow())));
+                addButton("+ Escolta", () -> resourceRows.getChildren().add(newResourceRow(null))));
         root.setPadding(new Insets(12));
 
-        waypointRows.getChildren().add(newWaypointRow());
+        if (existing == null) {
+            waypointRows.getChildren().add(newWaypointRow(null));
+        }
 
         errorLabel.setStyle("-fx-text-fill: #c62828;");
         errorLabel.setWrapText(true);
 
         Button cancelButton = new Button("Cancelar");
         cancelButton.setOnAction(e -> stage.close());
-        createButton.setOnAction(e -> submit());
-        HBox buttons = new HBox(8, createButton, cancelButton);
+        saveButton.setOnAction(e -> submit());
+        HBox buttons = new HBox(8, saveButton, cancelButton);
 
         VBox outer = new VBox(10, root, errorLabel, buttons);
         outer.setPadding(new Insets(12));
         javafx.scene.control.ScrollPane scroll = new javafx.scene.control.ScrollPane(outer);
         scroll.setFitToWidth(true);
         return scroll;
+    }
+
+    private void prefill(MissionDto mission) {
+        nameField.setText(mission.name());
+        typeField.getSelectionModel().select(MissionType.valueOf(mission.type()));
+        descriptionField.setText(mission.description());
+
+        LocalDateTime start = LocalDateTime.ofInstant(mission.startTime(), ZoneOffset.UTC);
+        startDateField.setValue(start.toLocalDate());
+        startHourField.getValueFactory().setValue(start.getHour());
+        startMinuteField.getValueFactory().setValue(start.getMinute());
+
+        LocalDateTime end = LocalDateTime.ofInstant(mission.endTime(), ZoneOffset.UTC);
+        endDateField.setValue(end.toLocalDate());
+        endHourField.getValueFactory().setValue(end.getHour());
+        endMinuteField.getValueFactory().setValue(end.getMinute());
+
+        for (WaypointDto w : mission.waypoints()) {
+            waypointRows.getChildren().add(newWaypointRow(w));
+        }
+        for (PhaseDto p : mission.phases()) {
+            phaseRows.getChildren().add(newPhaseRow(p));
+        }
+        for (ResourceDto r : mission.resources()) {
+            resourceRows.getChildren().add(newResourceRow(r));
+        }
     }
 
     private Label sectionLabel(String text) {
@@ -138,7 +180,7 @@ final class NewMissionDialog {
         return button;
     }
 
-    private HBox newWaypointRow() {
+    private HBox newWaypointRow(WaypointDto existingWaypoint) {
         TextField lat = new TextField();
         lat.setPromptText("lat");
         lat.setPrefWidth(80);
@@ -146,10 +188,18 @@ final class NewMissionDialog {
         lon.setPromptText("lon");
         lon.setPrefWidth(80);
         ComboBox<TaskType> taskType = new ComboBox<>(FXCollections.observableArrayList(TaskType.values()));
-        taskType.getSelectionModel().selectFirst();
         TextField notes = new TextField();
         notes.setPromptText("notas");
         HBox.setHgrow(notes, javafx.scene.layout.Priority.ALWAYS);
+
+        if (existingWaypoint != null) {
+            lat.setText(String.valueOf(existingWaypoint.latitude()));
+            lon.setText(String.valueOf(existingWaypoint.longitude()));
+            taskType.getSelectionModel().select(TaskType.valueOf(existingWaypoint.taskType()));
+            notes.setText(existingWaypoint.notes());
+        } else {
+            taskType.getSelectionModel().selectFirst();
+        }
 
         HBox row = new HBox(6, lat, lon, taskType, notes);
         row.setAlignment(Pos.CENTER_LEFT);
@@ -160,7 +210,7 @@ final class NewMissionDialog {
         return row;
     }
 
-    private HBox newPhaseRow() {
+    private HBox newPhaseRow(PhaseDto existingPhase) {
         TextField name = new TextField();
         name.setPromptText("nombre");
         TextField start = new TextField();
@@ -173,6 +223,13 @@ final class NewMissionDialog {
         notes.setPromptText("notas");
         HBox.setHgrow(notes, javafx.scene.layout.Priority.ALWAYS);
 
+        if (existingPhase != null) {
+            name.setText(existingPhase.name());
+            start.setText(String.valueOf(existingPhase.startOffsetMinutes()));
+            end.setText(String.valueOf(existingPhase.endOffsetMinutes()));
+            notes.setText(existingPhase.notes());
+        }
+
         HBox row = new HBox(6, name, start, end, notes);
         row.setAlignment(Pos.CENTER_LEFT);
         row.setUserData(new PhaseFields(name, start, end, notes));
@@ -182,14 +239,21 @@ final class NewMissionDialog {
         return row;
     }
 
-    private HBox newResourceRow() {
+    private HBox newResourceRow(ResourceDto existingResource) {
         TextField name = new TextField();
         name.setPromptText("nombre");
         ComboBox<ResourceType> type = new ComboBox<>(FXCollections.observableArrayList(ResourceType.values()));
-        type.getSelectionModel().selectFirst();
         TextField callSign = new TextField();
         callSign.setPromptText("indicativo");
         HBox.setHgrow(callSign, javafx.scene.layout.Priority.ALWAYS);
+
+        if (existingResource != null) {
+            name.setText(existingResource.name());
+            type.getSelectionModel().select(ResourceType.valueOf(existingResource.type()));
+            callSign.setText(existingResource.callSign());
+        } else {
+            type.getSelectionModel().selectFirst();
+        }
 
         HBox row = new HBox(6, name, type, callSign);
         row.setAlignment(Pos.CENTER_LEFT);
@@ -266,23 +330,23 @@ final class NewMissionDialog {
                 nameField.getText(), typeField.getValue().name(), startTime, endTime,
                 descriptionField.getText(), waypoints, phases, resources);
 
-        createButton.setDisable(true);
-        Task<MissionDto> createTask = new Task<>() {
+        saveButton.setDisable(true);
+        Task<MissionDto> saveTask = new Task<>() {
             @Override
             protected MissionDto call() throws Exception {
-                return apiClient.createMission(request);
+                return existing == null ? apiClient.createMission(request) : apiClient.updateMission(existing.id(), request);
             }
         };
-        createTask.setOnSucceeded(e -> {
+        saveTask.setOnSucceeded(e -> {
             stage.close();
-            onCreated.run();
+            onSaved.run();
         });
-        createTask.setOnFailed(e -> Platform.runLater(() -> {
-            createButton.setDisable(false);
-            errorLabel.setText(createTask.getException() != null
-                    ? createTask.getException().getMessage() : "No se pudo crear la misión.");
+        saveTask.setOnFailed(e -> Platform.runLater(() -> {
+            saveButton.setDisable(false);
+            errorLabel.setText(saveTask.getException() != null
+                    ? saveTask.getException().getMessage() : "No se pudo guardar la misión.");
         }));
-        new Thread(createTask, "create-mission").start();
+        new Thread(saveTask, "save-mission").start();
     }
 
     private Instant toInstant(LocalDate date, int hour, int minute) {

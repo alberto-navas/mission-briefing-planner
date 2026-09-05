@@ -14,6 +14,8 @@ import com.albertonavas.missionbriefing.legacymap.RiskLevel;
 import com.albertonavas.missionbriefing.legacymap.RiskZone;
 import com.albertonavas.missionbriefing.model.TaskType;
 import com.albertonavas.missionbriefing.model.Waypoint;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.util.List;
 import java.util.stream.Collectors;
 import javafx.application.Application;
@@ -31,6 +33,7 @@ import javafx.scene.control.ListView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javax.swing.SwingUtilities;
 import org.jxmapviewer.viewer.GeoPosition;
@@ -58,6 +61,9 @@ public class MissionPlannerApp extends Application {
     private final Button startButton = new Button("▶ Iniciar movimiento");
     private final Button pauseButton = new Button("⏸ Pausar");
     private final Button resetButton = new Button("⟲ Reiniciar");
+    private final Button editButton = new Button("✏ Editar misión");
+    private final Button deleteButton = new Button("🗑 Borrar misión");
+    private final Button exportPdfButton = new Button("📄 Exportar briefing (PDF)");
 
     private boolean securityCompromised;
 
@@ -75,6 +81,9 @@ public class MissionPlannerApp extends Application {
             startButton.setDisable(!hasSelection);
             pauseButton.setDisable(!hasSelection);
             resetButton.setDisable(!hasSelection);
+            editButton.setDisable(!hasSelection);
+            deleteButton.setDisable(!hasSelection);
+            exportPdfButton.setDisable(!hasSelection);
             securityCompromised = false;
             if (hasSelection) {
                 mapPanel.showWaypoints(toModelWaypoints(selected.waypoints()));
@@ -83,6 +92,9 @@ public class MissionPlannerApp extends Application {
                 setAlertBanner("Misión seleccionada: " + selected, false);
             } else {
                 escortListBox.getChildren().clear();
+                mapPanel.showWaypoints(List.of());
+                mapPanel.resetConvoyAnimation();
+                setAlertBanner("Sin misión seleccionada", false);
             }
         });
 
@@ -95,11 +107,34 @@ public class MissionPlannerApp extends Application {
 
         Button newMissionButton = new Button("+ Nueva misión");
         newMissionButton.setOnAction(event ->
-                NewMissionDialog.show(stage, apiClient, this::refreshMissions));
+                MissionFormDialog.showCreate(stage, apiClient, this::refreshMissions));
+
+        editButton.setOnAction(event -> {
+            MissionDto selected = missionList.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                MissionFormDialog.showEdit(stage, apiClient, selected, this::refreshMissions);
+            }
+        });
+        deleteButton.setOnAction(event -> {
+            MissionDto selected = missionList.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                confirmAndDelete(selected);
+            }
+        });
+        exportPdfButton.setOnAction(event -> {
+            MissionDto selected = missionList.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                exportBriefingPdf(stage, selected);
+            }
+        });
+        HBox missionActions = new HBox(6, editButton, deleteButton, exportPdfButton);
 
         startButton.setDisable(true);
         pauseButton.setDisable(true);
         resetButton.setDisable(true);
+        editButton.setDisable(true);
+        deleteButton.setDisable(true);
+        exportPdfButton.setDisable(true);
         startButton.setOnAction(event -> {
             MissionDto selected = missionList.getSelectionModel().getSelectedItem();
             if (selected != null) {
@@ -128,6 +163,7 @@ public class MissionPlannerApp extends Application {
         HBox convoyControls = new HBox(6, startButton, pauseButton, resetButton);
 
         VBox leftPane = new VBox(8, new Label("Misiones"), refreshButton, newMissionButton, missionList,
+                missionActions,
                 new Label("Escoltas"), escortListBox,
                 new Label("Simulación de convoy"), convoyControls);
         leftPane.setPadding(new Insets(8));
@@ -285,6 +321,66 @@ public class MissionPlannerApp extends Application {
             return "-fx-background-color: #c62828; -fx-text-fill: white; -fx-font-weight: bold;";
         }
         return "-fx-background-color: #eceff1; -fx-text-fill: #37474f;";
+    }
+
+    /**
+     * Captura el mapa tal como se ve ahora mismo (hilo de Swing) y, ya en el hilo de
+     * JavaFX, pide dónde guardar el PDF y lo genera en un hilo aparte.
+     */
+    private void exportBriefingPdf(Stage owner, MissionDto mission) {
+        SwingUtilities.invokeLater(() -> {
+            BufferedImage snapshot = mapPanel.snapshot();
+            Platform.runLater(() -> chooseFileAndExport(owner, mission, snapshot));
+        });
+    }
+
+    private void chooseFileAndExport(Stage owner, MissionDto mission, BufferedImage snapshot) {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Exportar briefing");
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Documento PDF", "*.pdf"));
+        chooser.setInitialFileName(mission.name().replaceAll("[^a-zA-Z0-9]+", "_") + "_briefing.pdf");
+        File file = chooser.showSaveDialog(owner);
+        if (file == null) {
+            return;
+        }
+
+        Task<Void> exportTask = new Task<>() {
+            @Override
+            protected Void call() throws Exception {
+                BriefingPdfExporter.export(file, mission, snapshot);
+                return null;
+            }
+        };
+        exportTask.setOnSucceeded(event -> {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION, "Briefing exportado a:\n" + file.getAbsolutePath());
+            alert.setHeaderText("PDF generado");
+            alert.showAndWait();
+        });
+        exportTask.setOnFailed(event -> Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.ERROR, "No se pudo generar el PDF: "
+                    + (exportTask.getException() != null ? exportTask.getException().getMessage() : "error desconocido"));
+            alert.setHeaderText("Error al exportar");
+            alert.showAndWait();
+        }));
+        new Thread(exportTask, "export-briefing-pdf").start();
+    }
+
+    private void confirmAndDelete(MissionDto mission) {
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+                "¿Borrar la misión \"%s\"? Esta acción no se puede deshacer.".formatted(mission.name()));
+        confirm.setHeaderText("Confirmar borrado");
+        confirm.showAndWait().filter(button -> button == javafx.scene.control.ButtonType.OK).ifPresent(button -> {
+            Task<Void> deleteTask = new Task<>() {
+                @Override
+                protected Void call() throws Exception {
+                    apiClient.deleteMission(mission.id());
+                    return null;
+                }
+            };
+            deleteTask.setOnSucceeded(event -> refreshMissions());
+            deleteTask.setOnFailed(event -> Platform.runLater(() -> showConnectionError(deleteTask.getException())));
+            new Thread(deleteTask, "delete-mission").start();
+        });
     }
 
     private void showConnectionError(Throwable cause) {

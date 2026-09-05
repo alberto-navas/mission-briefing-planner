@@ -2,6 +2,8 @@ package com.albertonavas.missionbriefing.legacymap;
 
 import com.albertonavas.missionbriefing.model.Waypoint;
 import java.awt.BorderLayout;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -316,6 +318,17 @@ public class LegacyMapPanel extends JPanel {
         if (riskZoneListener != null) {
             riskZoneListener.onZoneChange(zone);
         }
+    }
+
+    /** Captura el mapa tal como se ve ahora mismo (tiles + waypoints + zonas + convoy/escoltas). */
+    public BufferedImage snapshot() {
+        int width = Math.max(getWidth(), 1);
+        int height = Math.max(getHeight(), 1);
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = image.createGraphics();
+        paint(g);
+        g.dispose();
+        return image;
     }
 
     public int getWaypointMarkerCount() {

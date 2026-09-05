@@ -89,6 +89,31 @@ public class ApiClient {
         return mapper.readValue(response.body(), MissionDto.class);
     }
 
+    /** Reemplaza por completo una mision existente. Misma semantica de error que {@link #createMission}. */
+    public MissionDto updateMission(long id, CreateMissionRequestDto request) throws IOException, InterruptedException {
+        String body = mapper.writeValueAsString(request);
+        HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(baseUrl + "/api/missions/" + id))
+                .header("Content-Type", "application/json")
+                .PUT(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+        HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            throw new IOException("El servidor rechazo la actualizacion (HTTP %d): %s"
+                    .formatted(response.statusCode(), response.body()));
+        }
+        return mapper.readValue(response.body(), MissionDto.class);
+    }
+
+    public void deleteMission(long id) throws IOException, InterruptedException {
+        HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(baseUrl + "/api/missions/" + id))
+                .DELETE()
+                .build();
+        HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 204) {
+            throw new IOException("No se pudo borrar la mision (HTTP %d)".formatted(response.statusCode()));
+        }
+    }
+
     private HttpResponse<String> get(String path) throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + path)).GET().build();
         return httpClient.send(request, HttpResponse.BodyHandlers.ofString());

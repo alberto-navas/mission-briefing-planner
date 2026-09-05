@@ -4,12 +4,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.albertonavas.missionbriefing.model.TaskType;
 import com.albertonavas.missionbriefing.model.Waypoint;
+import java.awt.image.BufferedImage;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.jxmapviewer.viewer.GeoPosition;
 
 class LegacyMapPanelTest {
+
+    @Test
+    void snapshotMatchesThePanelSize() {
+        LegacyMapPanel panel = new LegacyMapPanel();
+        panel.setSize(400, 300);
+
+        BufferedImage image = panel.snapshot();
+
+        assertThat(image.getWidth()).isEqualTo(400);
+        assertThat(image.getHeight()).isEqualTo(300);
+    }
 
     @Test
     void showWaypointsAddsOneMarkerPerWaypoint() {

@@ -62,13 +62,20 @@ falta tener Maven instalado aparte.
    ./mvnw -pl mission-client-fx javafx:run
    ```
 
-## Crear una misión
+## Crear, editar y borrar una misión
 
-Desde el propio cliente: botón **"+ Nueva misión"** en el panel izquierdo abre un
-formulario (nombre, tipo, fecha/hora de inicio y fin en UTC, descripción, y filas
-dinámicas de waypoints/fases/escoltas con botones "+"/"✕"). Al guardar, llama al mismo
-endpoint `POST /api/missions` de abajo y refresca la lista — no hace falta reiniciar
-nada. También se puede crear directamente por API:
+Todo el CRUD de misiones está disponible desde el propio cliente, no solo por API:
+
+- **"+ Nueva misión"** abre un formulario (nombre, tipo, fecha/hora de inicio y fin en
+  UTC, descripción, y filas dinámicas de waypoints/fases/escoltas con botones "+"/"✕").
+  Llama a `POST /api/missions`.
+- **"✏ Editar misión"** abre el mismo formulario precargado con los datos de la misión
+  seleccionada. Llama a `PUT /api/missions/{id}`, que reemplaza por completo nombre,
+  tipo, fechas y todos los waypoints/fases/escoltas (no hay actualización parcial).
+- **"🗑 Borrar misión"** pide confirmación y llama a `DELETE /api/missions/{id}`.
+
+En los tres casos la lista se refresca sola al terminar. También se puede hacer
+directamente por API:
 
 ## Uso de la API
 
@@ -107,6 +114,12 @@ curl "http://localhost:8080/api/extraction-points"
 
 # Punto de extraccion mas cercano a una posicion, con ruta real hasta el
 curl "http://localhost:8080/api/extraction-points/nearest-route?lat=36.135&lon=-5.447"
+
+# Actualizar una mision existente (reemplazo completo)
+curl -X PUT http://localhost:8080/api/missions/1 -H "Content-Type: application/json" -d '{...}'
+
+# Borrar una mision
+curl -X DELETE http://localhost:8080/api/missions/1
 ```
 
 ## Escoltas y extracción de emergencia
@@ -126,6 +139,16 @@ Si se marca un escolta como perdido:
 Si nadie se marca como perdido, la misión simplemente llega a su destino previsto — dos
 misiones de ejemplo ("Escolta sin incidentes" / "Escolta con incidente") muestran los dos
 desenlaces con los mismos dos escoltas asignados.
+
+## Exportar el briefing a PDF
+
+Botón **"📄 Exportar briefing (PDF)"**: genera un documento PDF real (con
+[Apache PDFBox](https://pdfbox.apache.org/), sin fuentes externas que empaquetar) con
+portada (nombre, tipo, estado, fechas, descripción), una **captura del mapa tal como se
+ve en ese momento** (waypoints, zonas de riesgo, convoy/escoltas si la animación está en
+marcha — `LegacyMapPanel.snapshot()`), cronograma, ruta y escoltas asignados. Un
+`FileChooser` nativo pregunta dónde guardarlo. Pensado para ser un documento imprimible
+de verdad, no solo una vista en pantalla.
 
 ## Simulación de convoy y zonas de riesgo
 
@@ -184,9 +207,8 @@ Esta herramienta **no** hace nada de lo siguiente, a propósito:
 
 ## Posibles extensiones
 
-- Edición de una misión existente en el cliente JavaFX (hoy solo se puede crear; editar
-  o borrar sigue siendo por API).
 - i18n (ES/EN) en el cliente de escritorio, como en el resto del portafolio.
 - Migraciones de esquema con Flyway/Liquibase en vez de `hibernate.ddl-auto=update`.
-- Exportar el briefing generado a PDF.
 - Autenticación en la API REST.
+- Tests dedicados de la capa JavaFX (hoy la UI se prueba manualmente; lo probado
+  automáticamente son los módulos de servidor, modelo y el visor Swing).
