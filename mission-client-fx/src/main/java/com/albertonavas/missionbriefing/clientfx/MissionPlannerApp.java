@@ -106,6 +106,7 @@ public class MissionPlannerApp extends Application {
         refreshButton.setOnAction(event -> refreshMissions());
 
         Button newMissionButton = new Button("+ Nueva misión");
+        newMissionButton.getStyleClass().add("button-primary");
         newMissionButton.setOnAction(event ->
                 MissionFormDialog.showCreate(stage, apiClient, this::refreshMissions));
 
@@ -127,8 +128,10 @@ public class MissionPlannerApp extends Application {
                 exportBriefingPdf(stage, selected);
             }
         });
-        HBox missionActions = new HBox(6, editButton, deleteButton, exportPdfButton);
+        deleteButton.getStyleClass().add("button-danger");
+        VBox missionActions = fullWidthColumn(editButton, deleteButton, exportPdfButton);
 
+        startButton.getStyleClass().add("button-primary");
         startButton.setDisable(true);
         pauseButton.setDisable(true);
         resetButton.setDisable(true);
@@ -160,18 +163,28 @@ public class MissionPlannerApp extends Application {
                 rebuildEscortList(selected);
             }
         });
-        HBox convoyControls = new HBox(6, startButton, pauseButton, resetButton);
+        VBox convoyControls = fullWidthColumn(startButton, pauseButton, resetButton);
 
-        VBox leftPane = new VBox(8, new Label("Misiones"), refreshButton, newMissionButton, missionList,
-                missionActions,
-                new Label("Escoltas"), escortListBox,
-                new Label("Simulación de convoy"), convoyControls);
-        leftPane.setPadding(new Insets(8));
-        leftPane.setPrefWidth(300);
+        Label appTitle = new Label("MISSION BRIEFING PLANNER");
+        appTitle.getStyleClass().add("app-title");
+        Label appSubtitle = new Label("Planeamiento · aviso de ruta · retirada a extracción");
+        appSubtitle.getStyleClass().add("app-subtitle");
+        VBox titleBox = new VBox(2, appTitle, appSubtitle);
 
-        alertBanner.setPadding(new Insets(8));
+        VBox missionsSection = sectionCard("Misiones",
+                new HBox(6, refreshButton, newMissionButton), missionList, missionActions);
+        VBox escortsSection = sectionCard("Escoltas", escortListBox);
+        VBox convoySection = sectionCard("Simulación de convoy", convoyControls);
+
+        VBox leftPane = new VBox(12, titleBox, missionsSection, escortsSection, convoySection);
+        leftPane.getStyleClass().add("side-panel");
+        leftPane.setPadding(new Insets(12));
+        leftPane.setPrefWidth(340);
+        VBox.setVgrow(missionsSection, javafx.scene.layout.Priority.ALWAYS);
+
+        alertBanner.getStyleClass().add("alert-banner");
         alertBanner.setMaxWidth(Double.MAX_VALUE);
-        alertBanner.setStyle(bannerStyle(null));
+        setAlertBanner("Sin misión seleccionada", false);
 
         SwingNode mapNode = new SwingNode();
         SwingUtilities.invokeLater(() -> mapNode.setContent(mapPanel));
@@ -181,8 +194,11 @@ public class MissionPlannerApp extends Application {
         root.setTop(alertBanner);
         root.setCenter(mapNode);
 
+        Scene scene = new Scene(root, 1110, 700);
+        scene.getStylesheets().add(getClass().getResource("/css/mission-briefing.css").toExternalForm());
+
         stage.setTitle("Mission Briefing Planner");
-        stage.setScene(new Scene(root, 1050, 680));
+        stage.setScene(scene);
         stage.show();
 
         refreshMissions();
@@ -248,9 +264,18 @@ public class MissionPlannerApp extends Application {
 
     private void rebuildEscortList(MissionDto mission) {
         escortListBox.getChildren().clear();
+        if (mission.resources().isEmpty()) {
+            Label none = new Label("Sin escoltas asignados");
+            none.getStyleClass().add("app-subtitle");
+            escortListBox.getChildren().add(none);
+            return;
+        }
         for (ResourceDto resource : mission.resources()) {
             Label label = new Label(displayName(resource));
+            label.getStyleClass().add("escort-callsign");
+            HBox.setHgrow(label, javafx.scene.layout.Priority.ALWAYS);
             Button lostButton = new Button("✕ Marcar perdido");
+            lostButton.getStyleClass().add("button-danger");
             lostButton.setOnAction(event -> {
                 mapPanel.markEscortLost(String.valueOf(resource.id()));
                 lostButton.setDisable(true);
@@ -258,6 +283,7 @@ public class MissionPlannerApp extends Application {
             });
             HBox row = new HBox(8, label, lostButton);
             row.setAlignment(Pos.CENTER_LEFT);
+            row.getStyleClass().add("escort-row");
             escortListBox.getChildren().add(row);
         }
     }
@@ -313,14 +339,26 @@ public class MissionPlannerApp extends Application {
 
     private void setAlertBanner(String text, boolean alarmed) {
         alertBanner.setText(text);
-        alertBanner.setStyle(bannerStyle(alarmed));
+        alertBanner.getStyleClass().removeAll("alert-banner-ok", "alert-banner-alarm");
+        alertBanner.getStyleClass().add(alarmed ? "alert-banner-alarm" : "alert-banner-ok");
     }
 
-    private String bannerStyle(Boolean alarmed) {
-        if (Boolean.TRUE.equals(alarmed)) {
-            return "-fx-background-color: #c62828; -fx-text-fill: white; -fx-font-weight: bold;";
+    /** Columna de botones a ancho completo, para que ninguno se corte con "..." por falta de sitio. */
+    private VBox fullWidthColumn(Button... buttons) {
+        for (Button button : buttons) {
+            button.setMaxWidth(Double.MAX_VALUE);
         }
-        return "-fx-background-color: #eceff1; -fx-text-fill: #37474f;";
+        return new VBox(6, buttons);
+    }
+
+    /** Tarjeta con titulo de seccion, para agrupar visualmente los controles del panel izquierdo. */
+    private VBox sectionCard(String title, javafx.scene.Node... content) {
+        Label header = new Label(title.toUpperCase(java.util.Locale.ROOT));
+        header.getStyleClass().add("section-title");
+        VBox card = new VBox(8, header);
+        card.getChildren().addAll(content);
+        card.getStyleClass().add("panel-section");
+        return card;
     }
 
     /**

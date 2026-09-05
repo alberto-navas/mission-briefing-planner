@@ -76,7 +76,9 @@ final class MissionFormDialog {
         stage.initOwner(owner);
         stage.initModality(Modality.WINDOW_MODAL);
         stage.setTitle(existing == null ? "Nueva misión" : "Editar misión");
-        stage.setScene(new Scene(buildRoot(), 620, 640));
+        Scene scene = new Scene(buildRoot(), 640, 660);
+        scene.getStylesheets().add(getClass().getResource("/css/mission-briefing.css").toExternalForm());
+        stage.setScene(scene);
     }
 
     static void showCreate(Window owner, ApiClient apiClient, Runnable onSaved) {
@@ -127,11 +129,12 @@ final class MissionFormDialog {
             waypointRows.getChildren().add(newWaypointRow(null));
         }
 
-        errorLabel.setStyle("-fx-text-fill: #c62828;");
+        errorLabel.setStyle("-fx-text-fill: #ff8a80; -fx-font-weight: bold;");
         errorLabel.setWrapText(true);
 
         Button cancelButton = new Button("Cancelar");
         cancelButton.setOnAction(e -> stage.close());
+        saveButton.getStyleClass().add("button-primary");
         saveButton.setOnAction(e -> submit());
         HBox buttons = new HBox(8, saveButton, cancelButton);
 
@@ -169,8 +172,8 @@ final class MissionFormDialog {
     }
 
     private Label sectionLabel(String text) {
-        Label label = new Label(text);
-        label.setStyle("-fx-font-weight: bold;");
+        Label label = new Label(text.toUpperCase(java.util.Locale.ROOT));
+        label.getStyleClass().add("section-title");
         return label;
     }
 
@@ -205,6 +208,7 @@ final class MissionFormDialog {
         row.setAlignment(Pos.CENTER_LEFT);
         row.setUserData(new WaypointFields(lat, lon, taskType, notes));
         Button remove = new Button("✕");
+        remove.getStyleClass().add("button-danger");
         remove.setOnAction(e -> waypointRows.getChildren().remove(row));
         row.getChildren().add(remove);
         return row;
@@ -234,6 +238,7 @@ final class MissionFormDialog {
         row.setAlignment(Pos.CENTER_LEFT);
         row.setUserData(new PhaseFields(name, start, end, notes));
         Button remove = new Button("✕");
+        remove.getStyleClass().add("button-danger");
         remove.setOnAction(e -> phaseRows.getChildren().remove(row));
         row.getChildren().add(remove);
         return row;
@@ -259,6 +264,7 @@ final class MissionFormDialog {
         row.setAlignment(Pos.CENTER_LEFT);
         row.setUserData(new ResourceFields(name, type, callSign));
         Button remove = new Button("✕");
+        remove.getStyleClass().add("button-danger");
         remove.setOnAction(e -> resourceRows.getChildren().remove(row));
         row.getChildren().add(remove);
         return row;
