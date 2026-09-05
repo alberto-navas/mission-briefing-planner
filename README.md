@@ -22,7 +22,7 @@ Proyecto Maven multi-módulo:
 | Módulo | Rol |
 |---|---|
 | `mission-model` | Entidades de dominio compartidas (JPA): `Mission`, `Waypoint`, `MissionPhase`, `Resource`. Sin dependencia de Spring. |
-| `mission-server` | API REST (Spring Boot). Persistencia estructurada en **Postgres** vía JPA/Hibernate; texto libre de briefings indexado en **ElasticSearch** para búsqueda histórica. |
+| `mission-server` | API REST (Spring Boot). Persistencia estructurada en **Postgres** vía JPA/Hibernate; texto libre de briefings indexado en **ElasticSearch** para búsqueda histórica; ruta real por carretera vía el servicio público de **OSRM**. |
 | `mission-client-swing-legacy` | Módulo Swing "heredado": visor de mapa (`jxmapviewer2`, tiles OpenStreetMap). Sustituye a Luciad (SDK de mapas propietario) por una librería libre equivalente. |
 | `mission-client-fx` | Cliente de escritorio principal, **JavaFX**. Consume la API REST y embebe `mission-client-swing-legacy` vía `SwingNode` en vez de reescribir el visor de mapa — el mismo patrón de modernización parcial habitual en aplicaciones de escritorio de este sector. |
 
@@ -89,16 +89,33 @@ curl "http://localhost:8080/api/briefings/search?q=costera"
 
 # Catalogo de zonas de riesgo (ilustrativas, ver "Limites eticos")
 curl "http://localhost:8080/api/risk-zones"
+
+# Ruta real por carretera de una mision (OSRM), para animar el convoy sobre calles reales
+curl "http://localhost:8080/api/missions/1/road-route"
 ```
 
 ## Simulación de convoy y zonas de riesgo
 
 El cliente JavaFX pinta un catálogo de zonas de riesgo (círculos coloreados por nivel:
 bajo/medio/alto) sobre el mapa, y puede animar el movimiento del convoy de la misión
-seleccionada a lo largo de su ruta en tiempo simulado (comprimido a ~12 segundos,
-independientemente de la duración real de la misión). Si la posición animada entra en
-una zona de riesgo, se enciende un aviso en la parte superior de la ventana con el motivo;
-al salir, se apaga. Botones "Iniciar / Pausar / Reiniciar" en el panel izquierdo.
+seleccionada en tiempo simulado (comprimido a ~12 segundos, independientemente de la
+duración real de la misión). Si la posición animada entra en una zona de riesgo, se
+enciende un aviso en la parte superior de la ventana con el motivo; al salir, se apaga.
+Botones "Iniciar / Pausar / Reiniciar" en el panel izquierdo.
+
+**La animación sigue calles reales, no líneas rectas entre waypoints**: al pulsar
+"Iniciar", el cliente pide a `mission-server` la ruta real por carretera entre los
+waypoints de la misión (`GET /api/missions/{id}/road-route`), que a su vez la calcula
+llamando al servicio público de [OSRM](https://project-osrm.org/) (Open Source Routing
+Machine) tramo a tramo y concatenando el resultado. La velocidad visual del convoy es
+constante independientemente de cuántos puntos tenga cada tramo de la ruta (se reparte
+por distancia recorrida, no por número de puntos — ver `RouteAnimationMath`). Si el
+servicio de rutas no responde (sin red, límite de uso del demo público), el cliente cae
+automáticamente a animar en línea recta entre waypoints, sin romperse.
+
+Un GPS real encajaría en el mismo punto exacto donde hoy entra la posición simulada:
+`ConvoyMarkerPainter`/la detección de zona de riesgo trabajan sobre "la posición actual"
+sin saber ni importarles si viene de una interpolación o de un receptor real.
 
 ## Calidad
 
@@ -122,6 +139,10 @@ Esta herramienta **no** hace nada de lo siguiente, a propósito:
 - La animación del convoy es una **simulación de tiempo comprimido** sobre datos propios
   (la ruta que tú mismo planificaste), pensada para *avisar a la misión propia*, no para
   planear ni dirigir ninguna acción contra otra parte.
+- La ruta real por carretera usa el **servicio demo público de OSRM**, pensado para
+  pruebas/demos, no para producción (sin SLA, con límite de uso, y las coordenadas viajan
+  a un tercero). Un despliegue real usaría una instancia propia de OSRM o un proveedor de
+  pago — el punto de extensión (`OsrmRouteClient`) ya está aislado para ese cambio.
 
 ## Posibles extensiones
 

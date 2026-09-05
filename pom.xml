@@ -55,6 +55,12 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <configuration>
                         <release>21</release>
+                        <!-- Spring Boot 3 / Spring Framework 6 ya no recupera nombres de
+                             parametro via ASM: sin -parameters, @PathVariable/@RequestParam
+                             sin nombre explicito fallan en tiempo de ejecucion (no en
+                             compilacion), con un IllegalArgumentException dificil de
+                             asociar a esta causa la primera vez que se ve. -->
+                        <parameters>true</parameters>
                     </configuration>
                 </plugin>
             </plugins>

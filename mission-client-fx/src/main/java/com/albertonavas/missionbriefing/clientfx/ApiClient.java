@@ -1,5 +1,6 @@
 package com.albertonavas.missionbriefing.clientfx;
 
+import com.albertonavas.missionbriefing.clientfx.dto.GeoPointDto;
 import com.albertonavas.missionbriefing.clientfx.dto.MissionDto;
 import com.albertonavas.missionbriefing.clientfx.dto.RiskZoneDto;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -37,6 +38,16 @@ public class ApiClient {
     public List<RiskZoneDto> listRiskZones() throws IOException, InterruptedException {
         HttpResponse<String> response = get("/api/risk-zones");
         return mapper.readValue(response.body(), new TypeReference<List<RiskZoneDto>>() {
+        });
+    }
+
+    /** Ruta real por carretera (OSRM). Lanza IOException si el servicio de rutas falla o no responde 200. */
+    public List<GeoPointDto> getRoadRoute(long missionId) throws IOException, InterruptedException {
+        HttpResponse<String> response = get("/api/missions/" + missionId + "/road-route");
+        if (response.statusCode() != 200) {
+            throw new IOException("road-route respondio HTTP " + response.statusCode());
+        }
+        return mapper.readValue(response.body(), new TypeReference<List<GeoPointDto>>() {
         });
     }
 

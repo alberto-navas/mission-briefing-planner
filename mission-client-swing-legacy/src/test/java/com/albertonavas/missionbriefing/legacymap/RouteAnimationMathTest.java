@@ -1,48 +1,64 @@
 package com.albertonavas.missionbriefing.legacymap;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 
-import com.albertonavas.missionbriefing.model.TaskType;
-import com.albertonavas.missionbriefing.model.Waypoint;
 import java.util.List;
 import org.jxmapviewer.viewer.GeoPosition;
 import org.junit.jupiter.api.Test;
 
 class RouteAnimationMathTest {
 
-    private final List<Waypoint> route = List.of(
-            new Waypoint(1, 36.00, -5.00, TaskType.TRANSIT, "inicio"),
-            new Waypoint(2, 36.00, -4.00, TaskType.TRANSIT, "medio"),
-            new Waypoint(3, 36.00, -3.00, TaskType.TRANSIT, "fin"));
+    // Tres puntos equiespaciados en longitud (misma latitud): dos tramos de igual distancia.
+    private final List<GeoPosition> evenRoute = List.of(
+            new GeoPosition(36.00, -5.00),
+            new GeoPosition(36.00, -4.00),
+            new GeoPosition(36.00, -3.00));
 
     @Test
-    void progressZeroIsFirstWaypoint() {
-        GeoPosition p = RouteAnimationMath.interpolate(route, 0.0);
+    void progressZeroIsFirstPoint() {
+        GeoPosition p = RouteAnimationMath.interpolate(evenRoute, 0.0);
 
-        assertThat(p.getLatitude()).isEqualTo(36.00);
-        assertThat(p.getLongitude()).isEqualTo(-5.00);
+        assertThat(p.getLongitude()).isCloseTo(-5.00, within(1e-6));
     }
 
     @Test
-    void progressOneIsLastWaypoint() {
-        GeoPosition p = RouteAnimationMath.interpolate(route, 1.0);
+    void progressOneIsLastPoint() {
+        GeoPosition p = RouteAnimationMath.interpolate(evenRoute, 1.0);
 
-        assertThat(p.getLongitude()).isEqualTo(-3.00);
+        assertThat(p.getLongitude()).isCloseTo(-3.00, within(1e-6));
     }
 
     @Test
-    void progressHalfwayIsMiddleWaypoint() {
-        // 3 waypoints = 2 segmentos; progress 0.5 cae justo en el limite del primer segmento.
-        GeoPosition p = RouteAnimationMath.interpolate(route, 0.5);
+    void progressHalfwayIsMiddlePointWhenSegmentsAreEqualLength() {
+        GeoPosition p = RouteAnimationMath.interpolate(evenRoute, 0.5);
 
-        assertThat(p.getLongitude()).isEqualTo(-4.00);
+        assertThat(p.getLongitude()).isCloseTo(-4.00, within(1e-6));
     }
 
     @Test
-    void progressQuarterIsMidwayThroughFirstSegment() {
-        GeoPosition p = RouteAnimationMath.interpolate(route, 0.25);
+    void progressIsWeightedByDistanceNotByPointCount() {
+        // Muchos puntos apretados en el primer tramo, uno solo en el segundo tramo (el
+        // doble de largo): a progress=0.5 el convoy deberia estar a mitad de distancia
+        // total, es decir dentro del primer tramo (denso en puntos, corto en distancia),
+        // no en el punto intermedio por indice.
+        List<GeoPosition> unevenRoute = List.of(
+                new GeoPosition(36.00, -5.00),
+                new GeoPosition(36.00, -4.99),
+                new GeoPosition(36.00, -4.98),
+                new GeoPosition(36.00, -4.60)); // tramo final mucho mas largo
 
-        assertThat(p.getLongitude()).isEqualTo(-4.50);
+        GeoPosition p = RouteAnimationMath.interpolate(unevenRoute, 0.5);
+
+        assertThat(p.getLongitude()).isLessThan(-4.80); // aun en el tramo corto y denso
+    }
+
+    @Test
+    void singlePointRouteReturnsThatPoint() {
+        GeoPosition p = RouteAnimationMath.interpolate(List.of(new GeoPosition(1.0, 2.0)), 0.7);
+
+        assertThat(p.getLatitude()).isEqualTo(1.0);
+        assertThat(p.getLongitude()).isEqualTo(2.0);
     }
 
     @Test

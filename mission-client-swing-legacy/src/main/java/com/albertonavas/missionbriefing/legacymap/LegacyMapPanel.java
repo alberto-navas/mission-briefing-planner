@@ -48,7 +48,7 @@ public class LegacyMapPanel extends JPanel {
     private final ConvoyMarkerPainter convoyMarkerPainter = new ConvoyMarkerPainter();
 
     private Timer animationTimer;
-    private List<Waypoint> animationRoute = List.of();
+    private List<GeoPosition> animationRoute = List.of();
     private List<RiskZone> riskZones = List.of();
     private RiskZoneListener riskZoneListener;
     private RiskZone currentZone;
@@ -107,19 +107,34 @@ public class LegacyMapPanel extends JPanel {
     }
 
     /**
-     * Anima el movimiento del convoy por la ruta de la mision, en tiempo simulado
-     * (comprimido a {@value #ANIMATION_DURATION_MS} ms independientemente de la duracion
-     * real de la mision), avisando por {@link RiskZoneListener} al entrar o salir de una
-     * zona de riesgo.
+     * Anima el convoy en linea recta entre los waypoints de la mision (sin seguir
+     * calles reales). Se usa como reserva cuando no hay ruta real disponible; ver
+     * {@link #startConvoyAnimationAlongRoute(List)}.
      */
     public void startConvoyAnimation(List<Waypoint> waypoints) {
+        List<Waypoint> sorted = new ArrayList<>(waypoints);
+        sorted.sort((a, b) -> Integer.compare(a.getSequenceOrder(), b.getSequenceOrder()));
+
+        List<GeoPosition> route = new ArrayList<>(sorted.size());
+        for (Waypoint w : sorted) {
+            route.add(new GeoPosition(w.getLatitude(), w.getLongitude()));
+        }
+        startConvoyAnimationAlongRoute(route);
+    }
+
+    /**
+     * Anima el movimiento del convoy a lo largo de una ruta ya calculada (p.ej. una ruta
+     * real por carretera de OSRM), en tiempo simulado (comprimido a
+     * {@value #ANIMATION_DURATION_MS} ms independientemente de la duracion real de la
+     * mision), avisando por {@link RiskZoneListener} al entrar o salir de una zona de
+     * riesgo. La velocidad visual es constante: el progreso se reparte por distancia
+     * real recorrida, no por numero de puntos de la ruta.
+     */
+    public void startConvoyAnimationAlongRoute(List<GeoPosition> routePoints) {
         stopConvoyAnimation();
+        this.animationRoute = List.copyOf(routePoints);
 
-        List<Waypoint> route = new ArrayList<>(waypoints);
-        route.sort((a, b) -> Integer.compare(a.getSequenceOrder(), b.getSequenceOrder()));
-        this.animationRoute = route;
-
-        if (route.size() < 2) {
+        if (animationRoute.size() < 2) {
             return;
         }
 

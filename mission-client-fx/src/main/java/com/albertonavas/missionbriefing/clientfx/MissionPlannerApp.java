@@ -1,5 +1,6 @@
 package com.albertonavas.missionbriefing.clientfx;
 
+import com.albertonavas.missionbriefing.clientfx.dto.GeoPointDto;
 import com.albertonavas.missionbriefing.clientfx.dto.MissionDto;
 import com.albertonavas.missionbriefing.clientfx.dto.RiskZoneDto;
 import com.albertonavas.missionbriefing.clientfx.dto.WaypointDto;
@@ -10,6 +11,7 @@ import com.albertonavas.missionbriefing.model.TaskType;
 import com.albertonavas.missionbriefing.model.Waypoint;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.jxmapviewer.viewer.GeoPosition;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
@@ -80,7 +82,7 @@ public class MissionPlannerApp extends Application {
         startButton.setOnAction(event -> {
             MissionDto selected = missionList.getSelectionModel().getSelectedItem();
             if (selected != null) {
-                mapPanel.startConvoyAnimation(toModelWaypoints(selected.waypoints()));
+                startConvoyMovement(selected);
             }
         });
         pauseButton.setOnAction(event -> {
@@ -137,6 +139,27 @@ public class MissionPlannerApp extends Application {
         new Thread(loadMissions, "mission-fetch").start();
     }
 
+    /**
+     * Pide al servidor la ruta real por carretera (OSRM) y anima el convoy sobre ella;
+     * si el servicio de rutas falla (sin red, límite de uso del demo público...), cae
+     * automáticamente a la animación en línea recta entre waypoints.
+     */
+    private void startConvoyMovement(MissionDto mission) {
+        Task<List<GeoPointDto>> loadRoute = new Task<>() {
+            @Override
+            protected List<GeoPointDto> call() throws Exception {
+                return apiClient.getRoadRoute(mission.id());
+            }
+        };
+        loadRoute.setOnSucceeded(event ->
+                mapPanel.startConvoyAnimationAlongRoute(toGeoPositions(loadRoute.getValue())));
+        loadRoute.setOnFailed(event -> Platform.runLater(() -> {
+            mapPanel.startConvoyAnimation(toModelWaypoints(mission.waypoints()));
+            setAlertBanner("Ruta real no disponible (sin conexión al servicio de rutas) — animando en línea recta.", false);
+        }));
+        new Thread(loadRoute, "road-route-fetch").start();
+    }
+
     private void loadRiskZones() {
         Task<List<RiskZoneDto>> loadZones = new Task<>() {
             @Override
@@ -181,6 +204,12 @@ public class MissionPlannerApp extends Application {
     private List<Waypoint> toModelWaypoints(List<WaypointDto> waypoints) {
         return waypoints.stream()
                 .map(w -> new Waypoint(w.sequenceOrder(), w.latitude(), w.longitude(), TaskType.valueOf(w.taskType()), w.notes()))
+                .collect(Collectors.toList());
+    }
+
+    private List<GeoPosition> toGeoPositions(List<GeoPointDto> points) {
+        return points.stream()
+                .map(p -> new GeoPosition(p.latitude(), p.longitude()))
                 .collect(Collectors.toList());
     }
 
