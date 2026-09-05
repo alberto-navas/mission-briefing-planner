@@ -33,6 +33,19 @@ class MissionTest {
     }
 
     @Test
+    void addResourceLinksBothSidesAndMarksItUnavailable() {
+        Mission mission = new Mission("Escolta urbana", MissionType.ESCORT,
+                Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), "Escolta de convoy");
+        Resource escort = new Resource("Escolta 1", ResourceType.PERSONNEL_TEAM, "BRAVO-1");
+
+        mission.addResource(escort);
+
+        assertThat(mission.getAssignedResources()).containsExactly(escort);
+        assertThat(escort.getMission()).isSameAs(mission);
+        assertThat(escort.isAvailable()).isFalse();
+    }
+
+    @Test
     void assigningResourceToMissionMarksItUnavailable() {
         Mission mission = new Mission("Escolta", MissionType.ESCORT,
                 Instant.now(), Instant.now().plus(1, ChronoUnit.HOURS), "Escolta de convoy");

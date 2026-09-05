@@ -4,7 +4,9 @@ import com.albertonavas.missionbriefing.model.Waypoint;
 import java.awt.BorderLayout;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import javax.swing.JPanel;
 import javax.swing.Timer;
@@ -36,23 +38,37 @@ public class LegacyMapPanel extends JPanel {
         void onZoneChange(RiskZone zoneOrNull);
     }
 
+    /** Notificado cuando un escolta se marca como perdido durante la animacion. */
+    public interface EscortLostListener {
+        void onEscortLost(Escort escort, GeoPosition lastKnownConvoyPosition);
+    }
+
     // Estrecho de Gibraltar/mar de Alboran: misma zona demo que los hermanos Python del portafolio.
     private static final GeoPosition DEFAULT_CENTER = new GeoPosition(36.0, -5.6);
     private static final int DEFAULT_ZOOM = 7;
     private static final int ANIMATION_DURATION_MS = 12_000;
     private static final int TICK_MS = 40;
+    private static final double EARTH_RADIUS_METERS = 6_371_000;
+    private static final double ESCORT_LATERAL_OFFSET_METERS = 30;
 
     private final JXMapViewer mapViewer = new JXMapViewer();
     private final WaypointPainter<org.jxmapviewer.viewer.Waypoint> waypointPainter = new WaypointPainter<>();
     private final RiskZonePainter riskZonePainter = new RiskZonePainter();
     private final ConvoyMarkerPainter convoyMarkerPainter = new ConvoyMarkerPainter();
+    private final ExtractionPointPainter extractionPointPainter = new ExtractionPointPainter();
+    private final EscortMarkerPainter escortMarkerPainter = new EscortMarkerPainter();
 
     private Timer animationTimer;
     private List<GeoPosition> animationRoute = List.of();
     private List<RiskZone> riskZones = List.of();
     private RiskZoneListener riskZoneListener;
+    private EscortLostListener escortLostListener;
     private RiskZone currentZone;
     private int elapsedMs;
+    private GeoPosition currentConvoyPosition;
+
+    private List<Escort> escorts = List.of();
+    private final Map<String, EscortMarkerPainter.EscortState> escortStates = new LinkedHashMap<>();
 
     public LegacyMapPanel() {
         super(new BorderLayout());
@@ -66,8 +82,8 @@ public class LegacyMapPanel extends JPanel {
         mapViewer.setZoom(DEFAULT_ZOOM);
         mapViewer.setAddressLocation(DEFAULT_CENTER);
 
-        CompoundPainter<JXMapViewer> compoundPainter =
-                new CompoundPainter<>(riskZonePainter, waypointPainter, convoyMarkerPainter);
+        CompoundPainter<JXMapViewer> compoundPainter = new CompoundPainter<>(
+                riskZonePainter, waypointPainter, extractionPointPainter, convoyMarkerPainter, escortMarkerPainter);
         mapViewer.setOverlayPainter(compoundPainter);
 
         MouseInputListener panListener = new PanMouseInputListener(mapViewer);
@@ -104,6 +120,66 @@ public class LegacyMapPanel extends JPanel {
 
     public void setRiskZoneListener(RiskZoneListener listener) {
         this.riskZoneListener = listener;
+    }
+
+    /** Muestra los puntos de extraccion (retirada segura) sobre el mapa. */
+    public void showExtractionPoints(List<ExtractionPoint> points) {
+        extractionPointPainter.setPoints(points);
+        repaint();
+    }
+
+    public void setEscortLostListener(EscortLostListener listener) {
+        this.escortLostListener = listener;
+    }
+
+    /** Registra los escoltas de la mision seleccionada; se moveran junto al convoy al animar. */
+    public void showEscorts(List<Escort> missionEscorts, GeoPosition initialPosition) {
+        this.escorts = List.copyOf(missionEscorts);
+        escortStates.clear();
+        for (int i = 0; i < escorts.size(); i++) {
+            Escort escort = escorts.get(i);
+            GeoPosition position = initialPosition == null ? DEFAULT_CENTER : offsetPosition(initialPosition, i);
+            escortStates.put(escort.id(), new EscortMarkerPainter.EscortState(position, escort.callSign(), false));
+        }
+        escortMarkerPainter.setEscorts(escortStates);
+        repaint();
+    }
+
+    /**
+     * Marca un escolta como perdido: se congela en su ultima posicion conocida y deja de
+     * moverse con el convoy. Avisa por {@link EscortLostListener} para que quien gestione
+     * la mision pueda calcular una ruta de emergencia al punto de extraccion mas cercano.
+     */
+    public void markEscortLost(String escortId) {
+        EscortMarkerPainter.EscortState previous = escortStates.get(escortId);
+        if (previous == null || previous.lost()) {
+            return;
+        }
+        escortStates.put(escortId, new EscortMarkerPainter.EscortState(previous.position(), previous.callSign(), true));
+        escortMarkerPainter.setEscorts(escortStates);
+        repaint();
+
+        if (escortLostListener != null) {
+            Escort escort = escorts.stream().filter(e -> e.id().equals(escortId)).findFirst().orElse(null);
+            if (escort != null) {
+                escortLostListener.onEscortLost(escort, currentConvoyPosition);
+            }
+        }
+    }
+
+    /**
+     * Desvia la animacion en marcha hacia una ruta de emergencia (p.ej. al punto de
+     * extraccion mas cercano tras perder un escolta), sin detener el temporizador:
+     * simplemente sustituye la ruta y reinicia el progreso desde la posicion actual.
+     */
+    public void rerouteToExtraction(List<GeoPosition> emergencyRoute) {
+        this.animationRoute = List.copyOf(emergencyRoute);
+        this.elapsedMs = 0;
+        this.currentZone = null;
+    }
+
+    public GeoPosition getCurrentConvoyPosition() {
+        return currentConvoyPosition;
     }
 
     /**
@@ -159,7 +235,18 @@ public class LegacyMapPanel extends JPanel {
     public void resetConvoyAnimation() {
         stopConvoyAnimation();
         convoyMarkerPainter.clear();
+        currentConvoyPosition = null;
         notifyZoneChange(null);
+
+        if (!animationRoute.isEmpty()) {
+            GeoPosition start = animationRoute.get(0);
+            for (int i = 0; i < escorts.size(); i++) {
+                Escort escort = escorts.get(i);
+                escortStates.put(escort.id(),
+                        new EscortMarkerPainter.EscortState(offsetPosition(start, i), escort.callSign(), false));
+            }
+            escortMarkerPainter.setEscorts(escortStates);
+        }
         repaint();
     }
 
@@ -179,6 +266,7 @@ public class LegacyMapPanel extends JPanel {
         double progress = elapsedMs / (double) ANIMATION_DURATION_MS;
 
         GeoPosition position = RouteAnimationMath.interpolate(animationRoute, progress);
+        currentConvoyPosition = position;
         convoyMarkerPainter.setPosition(position);
 
         RiskZone zoneNow = RouteAnimationMath.findContainingZone(position, riskZones);
@@ -188,11 +276,40 @@ public class LegacyMapPanel extends JPanel {
         }
         convoyMarkerPainter.setInRiskZone(zoneNow != null);
 
+        moveEscortsWithConvoy(position);
+
         repaint();
 
         if (elapsedMs >= ANIMATION_DURATION_MS) {
             stopConvoyAnimation();
         }
+    }
+
+    /** Los escoltas vivos siguen al convoy con un pequeño desfase lateral; los perdidos se quedan quietos. */
+    private void moveEscortsWithConvoy(GeoPosition convoyPosition) {
+        if (escorts.isEmpty()) {
+            return;
+        }
+        for (int i = 0; i < escorts.size(); i++) {
+            Escort escort = escorts.get(i);
+            EscortMarkerPainter.EscortState state = escortStates.get(escort.id());
+            if (state != null && state.lost()) {
+                continue;
+            }
+            escortStates.put(escort.id(),
+                    new EscortMarkerPainter.EscortState(offsetPosition(convoyPosition, i), escort.callSign(), false));
+        }
+        escortMarkerPainter.setEscorts(escortStates);
+    }
+
+    /** Desplaza {@code base} un poco a un lado u otro segun {@code index}, para separar visualmente varios escoltas. */
+    private GeoPosition offsetPosition(GeoPosition base, int index) {
+        double side = index % 2 == 0 ? 1 : -1;
+        double magnitude = ESCORT_LATERAL_OFFSET_METERS * (1 + index / 2);
+        double metersPerDegreeLon = EARTH_RADIUS_METERS * Math.cos(Math.toRadians(base.getLatitude()))
+                * (Math.PI / 180.0);
+        double lonOffsetDegrees = (side * magnitude) / metersPerDegreeLon;
+        return new GeoPosition(base.getLatitude(), base.getLongitude() + lonOffsetDegrees);
     }
 
     private void notifyZoneChange(RiskZone zone) {
@@ -203,5 +320,14 @@ public class LegacyMapPanel extends JPanel {
 
     public int getWaypointMarkerCount() {
         return waypointPainter.getWaypoints().size();
+    }
+
+    public int getEscortCount() {
+        return escortStates.size();
+    }
+
+    public boolean isEscortLost(String escortId) {
+        EscortMarkerPainter.EscortState state = escortStates.get(escortId);
+        return state != null && state.lost();
     }
 }

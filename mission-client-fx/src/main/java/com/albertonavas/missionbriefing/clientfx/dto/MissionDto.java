@@ -12,7 +12,8 @@ public record MissionDto(
         Instant endTime,
         String description,
         List<WaypointDto> waypoints,
-        List<PhaseDto> phases) {
+        List<PhaseDto> phases,
+        List<ResourceDto> resources) {
 
     @Override
     public String toString() {

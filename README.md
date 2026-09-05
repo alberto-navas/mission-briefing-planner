@@ -5,7 +5,8 @@ una ruta con waypoints y tareas, un cronograma de fases y los recursos asignados
 un briefing de misión buscable en un archivo histórico. Backend REST en Java/Spring Boot,
 cliente de escritorio en JavaFX que embebe un módulo Swing heredado para la vista de mapa.
 Incluye una simulación del movimiento del convoy sobre su ruta con aviso en vivo al pasar
-por una zona de riesgo conocida.
+por una zona de riesgo conocida, y una simulación de pérdida de escolta que redirige la
+misión al punto de extracción seguro más cercano.
 
 ## Motivación
 
@@ -92,7 +93,31 @@ curl "http://localhost:8080/api/risk-zones"
 
 # Ruta real por carretera de una mision (OSRM), para animar el convoy sobre calles reales
 curl "http://localhost:8080/api/missions/1/road-route"
+
+# Catalogo de puntos de extraccion (retirada segura)
+curl "http://localhost:8080/api/extraction-points"
+
+# Punto de extraccion mas cercano a una posicion, con ruta real hasta el
+curl "http://localhost:8080/api/extraction-points/nearest-route?lat=36.135&lon=-5.447"
 ```
+
+## Escoltas y extracción de emergencia
+
+Una misión puede llevar escoltas asignados (`resources` al crearla, tipo `PERSONNEL_TEAM`).
+En el cliente JavaFX se ven como un "monigote" azul (🚶) junto al convoy, con su
+indicativo al lado; cada uno tiene un botón **"✕ Marcar perdido"** en el panel izquierdo.
+
+Si se marca un escolta como perdido:
+1. Se congela en su última posición conocida (icono atenuado + X roja) y ya no se mueve
+   con el convoy.
+2. El banner superior pasa a **"🚨 SEGURIDAD COMPROMETIDA"**.
+3. El cliente pide al servidor el punto de extracción más cercano a la posición actual
+   del convoy y la ruta real hasta él (`GET /api/extraction-points/nearest-route`).
+4. La animación se desvía hacia ese punto en vez de continuar la ruta original.
+
+Si nadie se marca como perdido, la misión simplemente llega a su destino previsto — dos
+misiones de ejemplo ("Escolta sin incidentes" / "Escolta con incidente") muestran los dos
+desenlaces con los mismos dos escoltas asignados.
 
 ## Simulación de convoy y zonas de riesgo
 
@@ -143,6 +168,11 @@ Esta herramienta **no** hace nada de lo siguiente, a propósito:
   pruebas/demos, no para producción (sin SLA, con límite de uso, y las coordenadas viajan
   a un tercero). Un despliegue real usaría una instancia propia de OSRM o un proveedor de
   pago — el punto de extensión (`OsrmRouteClient`) ya está aislado para ese cambio.
+- Los **puntos de extracción son un catálogo de ejemplo** (`ExtractionPointCatalog`),
+  igual que las zonas de riesgo. La función de "escolta perdido → redirigir a extracción"
+  es una **herramienta de retirada a un lugar seguro para proteger a la propia misión**,
+  no de ataque ni de persecución de nada — el punto de extracción es a donde se retira
+  uno mismo, no un objetivo.
 
 ## Posibles extensiones
 

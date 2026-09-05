@@ -2,10 +2,12 @@ package com.albertonavas.missionbriefing.server.service;
 
 import com.albertonavas.missionbriefing.model.Mission;
 import com.albertonavas.missionbriefing.model.MissionPhase;
+import com.albertonavas.missionbriefing.model.Resource;
 import com.albertonavas.missionbriefing.model.Waypoint;
 import com.albertonavas.missionbriefing.server.repository.MissionRepository;
 import com.albertonavas.missionbriefing.server.web.dto.CreateMissionRequest;
 import com.albertonavas.missionbriefing.server.web.dto.CreatePhaseRequest;
+import com.albertonavas.missionbriefing.server.web.dto.CreateResourceRequest;
 import com.albertonavas.missionbriefing.server.web.dto.CreateWaypointRequest;
 import java.util.List;
 import java.util.Optional;
@@ -40,6 +42,11 @@ public class MissionService {
         if (request.phases() != null) {
             for (CreatePhaseRequest p : request.phases()) {
                 mission.addPhase(new MissionPhase(p.name(), p.startOffsetMinutes(), p.endOffsetMinutes(), p.notes()));
+            }
+        }
+        if (request.resources() != null) {
+            for (CreateResourceRequest r : request.resources()) {
+                mission.addResource(new Resource(r.name(), r.type(), r.callSign()));
             }
         }
 

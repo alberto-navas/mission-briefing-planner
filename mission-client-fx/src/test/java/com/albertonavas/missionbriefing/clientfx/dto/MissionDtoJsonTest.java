@@ -25,7 +25,10 @@ class MissionDtoJsonTest {
                   "waypoints": [
                     {"id": 1, "sequenceOrder": 1, "latitude": 36.15, "longitude": -5.35, "taskType": "OBSERVE", "notes": "Punto norte"}
                   ],
-                  "phases": []
+                  "phases": [],
+                  "resources": [
+                    {"id": 1, "name": "Escolta 1", "type": "PERSONNEL_TEAM", "callSign": "BRAVO-1", "available": false}
+                  ]
                 }
                 """;
 
@@ -35,6 +38,8 @@ class MissionDtoJsonTest {
         assertThat(mission.type()).isEqualTo("RECONNAISSANCE");
         assertThat(mission.waypoints()).hasSize(1);
         assertThat(mission.waypoints().get(0).taskType()).isEqualTo("OBSERVE");
+        assertThat(mission.resources()).hasSize(1);
+        assertThat(mission.resources().get(0).callSign()).isEqualTo("BRAVO-1");
         assertThat(mission.toString()).isEqualTo("Patrulla costera (RECONNAISSANCE)");
     }
 }

@@ -1,7 +1,9 @@
 package com.albertonavas.missionbriefing.clientfx;
 
+import com.albertonavas.missionbriefing.clientfx.dto.ExtractionPointDto;
 import com.albertonavas.missionbriefing.clientfx.dto.GeoPointDto;
 import com.albertonavas.missionbriefing.clientfx.dto.MissionDto;
+import com.albertonavas.missionbriefing.clientfx.dto.NearestExtractionDto;
 import com.albertonavas.missionbriefing.clientfx.dto.RiskZoneDto;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,6 +14,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
+import java.util.Locale;
 
 /** Cliente HTTP fino sobre la API REST de mission-server. Sin frameworks: HttpClient del JDK + Jackson. */
 public class ApiClient {
@@ -49,6 +52,22 @@ public class ApiClient {
         }
         return mapper.readValue(response.body(), new TypeReference<List<GeoPointDto>>() {
         });
+    }
+
+    public List<ExtractionPointDto> listExtractionPoints() throws IOException, InterruptedException {
+        HttpResponse<String> response = get("/api/extraction-points");
+        return mapper.readValue(response.body(), new TypeReference<List<ExtractionPointDto>>() {
+        });
+    }
+
+    /** Punto de extraccion mas cercano a (lat, lon) y la ruta real por carretera hasta el. */
+    public NearestExtractionDto getNearestExtractionRoute(double lat, double lon) throws IOException, InterruptedException {
+        String path = String.format(Locale.ROOT, "/api/extraction-points/nearest-route?lat=%.6f&lon=%.6f", lat, lon);
+        HttpResponse<String> response = get(path);
+        if (response.statusCode() != 200) {
+            throw new IOException("nearest-route respondio HTTP " + response.statusCode());
+        }
+        return mapper.readValue(response.body(), NearestExtractionDto.class);
     }
 
     private HttpResponse<String> get(String path) throws IOException, InterruptedException {
