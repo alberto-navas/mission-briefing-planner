@@ -50,7 +50,7 @@ falta tener Maven instalado aparte.
    docker compose up -d
    ```
 
-2. Arrancar el servidor REST:
+2. Arrancar el servidor REST (crea el esquema de Postgres con Flyway automáticamente):
 
    ```bash
    ./mvnw -pl mission-server spring-boot:run
@@ -61,6 +61,11 @@ falta tener Maven instalado aparte.
    ```bash
    ./mvnw -pl mission-client-fx javafx:run
    ```
+
+La API exige autenticación básica (usuario `admin`, contraseña `missionbriefing` por
+defecto — cambiable con la variable de entorno `MISSION_API_PASSWORD` en el servidor y
+`MISSION_API_USER`/`MISSION_API_PASSWORD` en el cliente). El cliente JavaFX ya manda las
+credenciales solo; para llamar a la API a mano hace falta `-u admin:missionbriefing`.
 
 ## Crear, editar y borrar una misión
 
@@ -81,7 +86,7 @@ directamente por API:
 
 ```bash
 # Crear una mision
-curl -X POST http://localhost:8080/api/missions \
+curl -u admin:missionbriefing -X POST http://localhost:8080/api/missions \
   -H "Content-Type: application/json" \
   -d '{
         "name": "Patrulla costera",
@@ -98,28 +103,28 @@ curl -X POST http://localhost:8080/api/missions \
       }'
 
 # Generar el briefing de esa mision (indexado en ElasticSearch)
-curl -X POST http://localhost:8080/api/missions/1/briefing
+curl -u admin:missionbriefing -X POST http://localhost:8080/api/missions/1/briefing
 
 # Buscar en el archivo historico de briefings
-curl "http://localhost:8080/api/briefings/search?q=costera"
+curl -u admin:missionbriefing "http://localhost:8080/api/briefings/search?q=costera"
 
 # Catalogo de zonas de riesgo (ilustrativas, ver "Limites eticos")
-curl "http://localhost:8080/api/risk-zones"
+curl -u admin:missionbriefing "http://localhost:8080/api/risk-zones"
 
 # Ruta real por carretera de una mision (OSRM), para animar el convoy sobre calles reales
-curl "http://localhost:8080/api/missions/1/road-route"
+curl -u admin:missionbriefing "http://localhost:8080/api/missions/1/road-route"
 
 # Catalogo de puntos de extraccion (retirada segura)
-curl "http://localhost:8080/api/extraction-points"
+curl -u admin:missionbriefing "http://localhost:8080/api/extraction-points"
 
 # Punto de extraccion mas cercano a una posicion, con ruta real hasta el
-curl "http://localhost:8080/api/extraction-points/nearest-route?lat=36.135&lon=-5.447"
+curl -u admin:missionbriefing "http://localhost:8080/api/extraction-points/nearest-route?lat=36.135&lon=-5.447"
 
 # Actualizar una mision existente (reemplazo completo)
-curl -X PUT http://localhost:8080/api/missions/1 -H "Content-Type: application/json" -d '{...}'
+curl -u admin:missionbriefing -X PUT http://localhost:8080/api/missions/1 -H "Content-Type: application/json" -d '{...}'
 
 # Borrar una mision
-curl -X DELETE http://localhost:8080/api/missions/1
+curl -u admin:missionbriefing -X DELETE http://localhost:8080/api/missions/1
 ```
 
 ## Escoltas y extracción de emergencia
@@ -186,6 +191,12 @@ sin saber ni importarles si viene de una interpolación o de un receptor real.
   (sin necesitar Postgres/ElasticSearch levantados para correr los tests).
 - Cobertura con JaCoCo (`mvn test`, informe en `target/site/jacoco` de cada módulo).
 - CI en GitHub Actions (`mvn -B test`) en cada push/PR a `main`.
+- Esquema de Postgres versionado con **Flyway** (`mission-server/src/main/resources/db/migration`)
+  en vez de `hibernate.ddl-auto=update`: Hibernate arranca en modo `validate` (falla rápido si
+  una entidad y la tabla real no coinciden) y cada cambio de esquema queda en un script
+  numerado y revisable, no generado implícitamente.
+- API protegida con **autenticación básica** (Spring Security, ver "Cómo ejecutarlo"): sin
+  credenciales, cualquier endpoint responde `401`. El cliente JavaFX las manda solas.
 
 ## Límites éticos
 
@@ -215,7 +226,5 @@ Esta herramienta **no** hace nada de lo siguiente, a propósito:
 ## Posibles extensiones
 
 - i18n (ES/EN) en el cliente de escritorio, como en el resto del portafolio.
-- Migraciones de esquema con Flyway/Liquibase en vez de `hibernate.ddl-auto=update`.
-- Autenticación en la API REST.
 - Tests dedicados de la capa JavaFX (hoy la UI se prueba manualmente; lo probado
   automáticamente son los módulos de servidor, modelo y el visor Swing).

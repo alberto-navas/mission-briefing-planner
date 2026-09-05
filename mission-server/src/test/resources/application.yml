@@ -9,3 +9,11 @@ spring:
       ddl-auto: create-drop
   elasticsearch:
     uris: http://localhost:9201
+  # Los tests usan H2 (Hibernate genera el esquema con create-drop); Flyway solo gestiona
+  # el esquema real de Postgres.
+  flyway:
+    enabled: false
+  security:
+    user:
+      name: test-user
+      password: test-pass

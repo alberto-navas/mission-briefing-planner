@@ -10,6 +10,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.IOException;
+import java.net.Authenticator;
+import java.net.PasswordAuthentication;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -17,15 +19,34 @@ import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.Locale;
 
-/** Cliente HTTP fino sobre la API REST de mission-server. Sin frameworks: HttpClient del JDK + Jackson. */
+/**
+ * Cliente HTTP fino sobre la API REST de mission-server. Sin frameworks: HttpClient del
+ * JDK + Jackson. La API exige autenticacion basica (ver SecurityConfig del servidor); el
+ * {@link Authenticator} del propio HttpClient responde al reto 401 sin tener que anadir
+ * la cabecera a mano en cada peticion.
+ */
 public class ApiClient {
 
-    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final HttpClient httpClient;
     private final ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
     private final String baseUrl;
 
     public ApiClient(String baseUrl) {
+        this(baseUrl,
+                System.getenv().getOrDefault("MISSION_API_USER", "admin"),
+                System.getenv().getOrDefault("MISSION_API_PASSWORD", "missionbriefing"));
+    }
+
+    public ApiClient(String baseUrl, String user, String password) {
         this.baseUrl = baseUrl;
+        this.httpClient = HttpClient.newBuilder()
+                .authenticator(new Authenticator() {
+                    @Override
+                    protected PasswordAuthentication getPasswordAuthentication() {
+                        return new PasswordAuthentication(user, password.toCharArray());
+                    }
+                })
+                .build();
     }
 
     public List<MissionDto> listMissions() throws IOException, InterruptedException {
