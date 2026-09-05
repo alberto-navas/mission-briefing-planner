@@ -4,6 +4,8 @@ Planificador de misiones operativas propias (reconocimiento, logística, escolta
 una ruta con waypoints y tareas, un cronograma de fases y los recursos asignados, y genera
 un briefing de misión buscable en un archivo histórico. Backend REST en Java/Spring Boot,
 cliente de escritorio en JavaFX que embebe un módulo Swing heredado para la vista de mapa.
+Incluye una simulación del movimiento del convoy sobre su ruta con aviso en vivo al pasar
+por una zona de riesgo conocida.
 
 ## Motivación
 
@@ -84,7 +86,19 @@ curl -X POST http://localhost:8080/api/missions/1/briefing
 
 # Buscar en el archivo historico de briefings
 curl "http://localhost:8080/api/briefings/search?q=costera"
+
+# Catalogo de zonas de riesgo (ilustrativas, ver "Limites eticos")
+curl "http://localhost:8080/api/risk-zones"
 ```
+
+## Simulación de convoy y zonas de riesgo
+
+El cliente JavaFX pinta un catálogo de zonas de riesgo (círculos coloreados por nivel:
+bajo/medio/alto) sobre el mapa, y puede animar el movimiento del convoy de la misión
+seleccionada a lo largo de su ruta en tiempo simulado (comprimido a ~12 segundos,
+independientemente de la duración real de la misión). Si la posición animada entra en
+una zona de riesgo, se enciende un aviso en la parte superior de la ventana con el motivo;
+al salir, se apaga. Botones "Iniciar / Pausar / Reiniciar" en el panel izquierdo.
 
 ## Calidad
 
@@ -102,6 +116,12 @@ Esta herramienta **no** hace nada de lo siguiente, a propósito:
   documentación offline.
 - No incluye misiones de ataque ni cálculo de daño: los tipos de misión son
   reconocimiento, logística y escolta.
+- Las **zonas de riesgo son un catálogo de ejemplo, hardcoded** (`RiskZoneCatalog`), no
+  inteligencia real ni datos de ningún proveedor — sirven para demostrar el concepto de
+  "avisar a mi propia ruta", no para identificar amenazas reales.
+- La animación del convoy es una **simulación de tiempo comprimido** sobre datos propios
+  (la ruta que tú mismo planificaste), pensada para *avisar a la misión propia*, no para
+  planear ni dirigir ninguna acción contra otra parte.
 
 ## Posibles extensiones
 

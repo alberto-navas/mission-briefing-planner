@@ -1,6 +1,7 @@
 package com.albertonavas.missionbriefing.clientfx;
 
 import com.albertonavas.missionbriefing.clientfx.dto.MissionDto;
+import com.albertonavas.missionbriefing.clientfx.dto.RiskZoneDto;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -31,6 +32,12 @@ public class ApiClient {
     public MissionDto getMission(long id) throws IOException, InterruptedException {
         HttpResponse<String> response = get("/api/missions/" + id);
         return mapper.readValue(response.body(), MissionDto.class);
+    }
+
+    public List<RiskZoneDto> listRiskZones() throws IOException, InterruptedException {
+        HttpResponse<String> response = get("/api/risk-zones");
+        return mapper.readValue(response.body(), new TypeReference<List<RiskZoneDto>>() {
+        });
     }
 
     private HttpResponse<String> get(String path) throws IOException, InterruptedException {
