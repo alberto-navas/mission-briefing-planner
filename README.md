@@ -1,5 +1,8 @@
 # Mission Briefing Planner
 
+[![CI](https://github.com/alberto-navas/mission-briefing-planner/actions/workflows/ci.yml/badge.svg)](https://github.com/alberto-navas/mission-briefing-planner/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Planificador de misiones operativas propias (reconocimiento, logística, escolta): define
 una ruta con waypoints y tareas, un cronograma de fases y los recursos asignados, y genera
 un briefing de misión buscable en un archivo histórico. Backend REST en Java/Spring Boot,
@@ -7,6 +10,14 @@ cliente de escritorio en JavaFX que embebe un módulo Swing heredado para la vis
 Incluye una simulación del movimiento del convoy sobre su ruta con aviso en vivo al pasar
 por una zona de riesgo conocida, y una simulación de pérdida de escolta que redirige la
 misión al punto de extracción seguro más cercano.
+
+<p align="center">
+  <img src="docs/screenshots/convoy-reroute.png" alt="Cliente JavaFX: convoy en ruta real por carretera entre Algeciras y San Roque, zonas de riesgo pintadas sobre el mapa, y el banner superior en rojo tras marcar un escolta como perdido, avisando que la misión se esta redirigiendo al punto de extraccion mas cercano" width="800">
+</p>
+
+*El escolta BRAVO-1 se marca como perdido a mitad de ruta: el banner avisa de la
+incidencia, y la animación se desvía en tiempo real hacia el punto de extracción seguro
+más cercano (`La Línea de la Concepción`) en vez de continuar hacia el destino original.*
 
 ## Motivación
 
