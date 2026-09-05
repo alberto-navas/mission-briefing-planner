@@ -1,5 +1,6 @@
 package com.albertonavas.missionbriefing.clientfx;
 
+import com.albertonavas.missionbriefing.clientfx.dto.CreateMissionRequestDto;
 import com.albertonavas.missionbriefing.clientfx.dto.ExtractionPointDto;
 import com.albertonavas.missionbriefing.clientfx.dto.GeoPointDto;
 import com.albertonavas.missionbriefing.clientfx.dto.MissionDto;
@@ -68,6 +69,24 @@ public class ApiClient {
             throw new IOException("nearest-route respondio HTTP " + response.statusCode());
         }
         return mapper.readValue(response.body(), NearestExtractionDto.class);
+    }
+
+    /**
+     * Crea una mision. Lanza IOException con el cuerpo de la respuesta si el servidor la
+     * rechaza (p.ej. validacion: nombre en blanco), para poder mostrarselo al usuario.
+     */
+    public MissionDto createMission(CreateMissionRequestDto request) throws IOException, InterruptedException {
+        String body = mapper.writeValueAsString(request);
+        HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(baseUrl + "/api/missions"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+        HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 201) {
+            throw new IOException("El servidor rechazo la mision (HTTP %d): %s"
+                    .formatted(response.statusCode(), response.body()));
+        }
+        return mapper.readValue(response.body(), MissionDto.class);
     }
 
     private HttpResponse<String> get(String path) throws IOException, InterruptedException {

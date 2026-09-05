@@ -93,6 +93,10 @@ public class MissionPlannerApp extends Application {
         Button refreshButton = new Button("Actualizar misiones");
         refreshButton.setOnAction(event -> refreshMissions());
 
+        Button newMissionButton = new Button("+ Nueva misión");
+        newMissionButton.setOnAction(event ->
+                NewMissionDialog.show(stage, apiClient, this::refreshMissions));
+
         startButton.setDisable(true);
         pauseButton.setDisable(true);
         resetButton.setDisable(true);
@@ -123,7 +127,7 @@ public class MissionPlannerApp extends Application {
         });
         HBox convoyControls = new HBox(6, startButton, pauseButton, resetButton);
 
-        VBox leftPane = new VBox(8, new Label("Misiones"), refreshButton, missionList,
+        VBox leftPane = new VBox(8, new Label("Misiones"), refreshButton, newMissionButton, missionList,
                 new Label("Escoltas"), escortListBox,
                 new Label("Simulación de convoy"), convoyControls);
         leftPane.setPadding(new Insets(8));

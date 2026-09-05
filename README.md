@@ -62,6 +62,14 @@ falta tener Maven instalado aparte.
    ./mvnw -pl mission-client-fx javafx:run
    ```
 
+## Crear una misión
+
+Desde el propio cliente: botón **"+ Nueva misión"** en el panel izquierdo abre un
+formulario (nombre, tipo, fecha/hora de inicio y fin en UTC, descripción, y filas
+dinámicas de waypoints/fases/escoltas con botones "+"/"✕"). Al guardar, llama al mismo
+endpoint `POST /api/missions` de abajo y refresca la lista — no hace falta reiniciar
+nada. También se puede crear directamente por API:
+
 ## Uso de la API
 
 ```bash
@@ -176,8 +184,9 @@ Esta herramienta **no** hace nada de lo siguiente, a propósito:
 
 ## Posibles extensiones
 
-- Formulario de creación/edición de misión en el cliente JavaFX (hoy la creación se hace
-  vía API; la UI de escritorio es de solo lectura + mapa).
+- Edición de una misión existente en el cliente JavaFX (hoy solo se puede crear; editar
+  o borrar sigue siendo por API).
+- i18n (ES/EN) en el cliente de escritorio, como en el resto del portafolio.
 - Migraciones de esquema con Flyway/Liquibase en vez de `hibernate.ddl-auto=update`.
 - Exportar el briefing generado a PDF.
 - Autenticación en la API REST.
