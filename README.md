@@ -150,6 +150,13 @@ marcha — `LegacyMapPanel.snapshot()`), cronograma, ruta y escoltas asignados. 
 `FileChooser` nativo pregunta dónde guardarlo. Pensado para ser un documento imprimible
 de verdad, no solo una vista en pantalla.
 
+## Interfaz
+
+El cliente JavaFX usa una hoja de estilos propia (`mission-briefing.css`, tema oscuro
+tipo "consola de operaciones") en vez del `Modena` por defecto: el panel izquierdo se
+organiza en secciones (misiones, escoltas, simulación de convoy) con jerarquía visual
+clara, y el banner de alerta cambia de color según haya o no una incidencia activa.
+
 ## Simulación de convoy y zonas de riesgo
 
 El cliente JavaFX pinta un catálogo de zonas de riesgo (círculos coloreados por nivel:
