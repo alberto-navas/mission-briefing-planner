@@ -12,12 +12,13 @@ por una zona de riesgo conocida, y una simulación de pérdida de escolta que re
 misión al punto de extracción seguro más cercano.
 
 <p align="center">
-  <img src="docs/screenshots/convoy-reroute.png" alt="Cliente JavaFX: convoy en ruta real por carretera entre Algeciras y San Roque, zonas de riesgo pintadas sobre el mapa, y el banner superior en rojo tras marcar un escolta como perdido, avisando que la misión se esta redirigiendo al punto de extraccion mas cercano" width="800">
+  <img src="docs/screenshots/demo.gif" alt="Cliente JavaFX en marcha: el convoy avanza por calles reales entre Algeciras y San Roque sobre zonas de riesgo pintadas en el mapa; a mitad de ruta se marca el escolta BRAVO-1 como perdido, el banner superior pasa a rojo avisando de seguridad comprometida, y la animacion se desvia hacia el punto de extraccion mas cercano mientras BRAVO-2 sigue en movimiento" width="800">
 </p>
 
 *El escolta BRAVO-1 se marca como perdido a mitad de ruta: el banner avisa de la
 incidencia, y la animación se desvía en tiempo real hacia el punto de extracción seguro
-más cercano (`La Línea de la Concepción`) en vez de continuar hacia el destino original.*
+más cercano (`La Línea de la Concepción`) en vez de continuar hacia el destino original —
+sin cortar el vídeo, capturado del cliente real en marcha.*
 
 ## Motivación
 
