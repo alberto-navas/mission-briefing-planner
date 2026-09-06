@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.util.Locale;
 import java.util.Objects;
 
 /** Un punto de la ruta de una mision, con la tarea que se realiza alli. */
@@ -96,7 +97,7 @@ public class Waypoint {
 
     @Override
     public String toString() {
-        return "Waypoint{id=%s, order=%d, lat=%.5f, lon=%.5f, task=%s}"
-                .formatted(id, sequenceOrder, latitude, longitude, taskType);
+        return String.format(Locale.ROOT, "Waypoint{id=%s, order=%d, lat=%.5f, lon=%.5f, task=%s}",
+                id, sequenceOrder, latitude, longitude, taskType);
     }
 }

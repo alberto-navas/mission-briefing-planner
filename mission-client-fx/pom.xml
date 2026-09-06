@@ -21,6 +21,7 @@
 
     <properties>
         <jackson.version>2.17.2</jackson.version>
+        <pdfbox.version>2.0.31</pdfbox.version>
         <!-- por defecto Windows; los perfiles de abajo la pisan en mac/Linux -->
         <javafx.platform>win</javafx.platform>
     </properties>
@@ -101,6 +102,13 @@
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
             <version>${jackson.version}</version>
+        </dependency>
+
+        <!-- Genera el briefing como PDF real (portada + mapa + cronograma + ruta + escoltas). -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>${pdfbox.version}</version>
         </dependency>
 
         <dependency>

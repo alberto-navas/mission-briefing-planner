@@ -8,6 +8,7 @@ import com.albertonavas.missionbriefing.server.search.BriefingDocument;
 import com.albertonavas.missionbriefing.server.search.BriefingSearchRepository;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.NoSuchElementException;
 import org.springframework.stereotype.Service;
 
@@ -46,7 +47,9 @@ public class BriefingService {
 
         sb.append("Ruta:\n");
         for (Waypoint w : mission.getWaypoints()) {
-            sb.append(" - #%d %s en (%.5f, %.5f)%s%n".formatted(
+            // Locale.ROOT a proposito: unas coordenadas con coma decimal (locale es_ES)
+            // en vez de punto son, sencillamente, incorrectas.
+            sb.append(String.format(Locale.ROOT, " - #%d %s en (%.5f, %.5f)%s%n",
                     w.getSequenceOrder(), w.getTaskType(), w.getLatitude(), w.getLongitude(),
                     w.getNotes() != null && !w.getNotes().isBlank() ? ": " + w.getNotes() : ""));
         }

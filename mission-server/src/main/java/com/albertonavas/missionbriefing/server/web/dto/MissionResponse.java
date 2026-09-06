@@ -15,7 +15,8 @@ public record MissionResponse(
         Instant endTime,
         String description,
         List<WaypointResponse> waypoints,
-        List<PhaseResponse> phases) {
+        List<PhaseResponse> phases,
+        List<ResourceResponse> resources) {
 
     public static MissionResponse from(Mission mission) {
         return new MissionResponse(
@@ -27,6 +28,7 @@ public record MissionResponse(
                 mission.getEndTime(),
                 mission.getDescription(),
                 mission.getWaypoints().stream().map(WaypointResponse::from).toList(),
-                mission.getPhases().stream().map(PhaseResponse::from).toList());
+                mission.getPhases().stream().map(PhaseResponse::from).toList(),
+                mission.getAssignedResources().stream().map(ResourceResponse::from).toList());
     }
 }

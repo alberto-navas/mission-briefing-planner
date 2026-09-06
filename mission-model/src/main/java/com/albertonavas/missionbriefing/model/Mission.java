@@ -50,7 +50,7 @@ public class Mission {
     @OrderBy("startOffsetMinutes ASC")
     private List<MissionPhase> phases = new ArrayList<>();
 
-    @OneToMany(mappedBy = "mission", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "mission", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Resource> assignedResources = new ArrayList<>();
 
     protected Mission() {
@@ -73,6 +73,11 @@ public class Mission {
     public void addPhase(MissionPhase phase) {
         phases.add(phase);
         phase.setMission(this);
+    }
+
+    public void addResource(Resource resource) {
+        assignedResources.add(resource);
+        resource.assignTo(this);
     }
 
     public Long getId() {

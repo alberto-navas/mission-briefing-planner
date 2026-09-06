@@ -14,5 +14,6 @@ public record CreateMissionRequest(
         @NotNull Instant endTime,
         String description,
         @Valid List<CreateWaypointRequest> waypoints,
-        @Valid List<CreatePhaseRequest> phases) {
+        @Valid List<CreatePhaseRequest> phases,
+        @Valid List<CreateResourceRequest> resources) {
 }

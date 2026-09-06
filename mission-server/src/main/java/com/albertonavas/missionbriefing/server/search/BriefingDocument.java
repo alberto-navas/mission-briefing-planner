@@ -2,6 +2,7 @@ package com.albertonavas.missionbriefing.server.search;
 
 import java.time.Instant;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.elasticsearch.annotations.DateFormat;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
@@ -25,6 +26,10 @@ public class BriefingDocument {
     @Field(type = FieldType.Text)
     private String summary;
 
+    // Sin este mapeo explicito, ElasticSearch infiere un tipo para "generatedAt" a partir
+    // del primer documento indexado y Spring Data no siempre sabe deserializarlo de vuelta
+    // a Instant (falla con ConverterNotFoundException al leer). epoch_millis es inequivoco.
+    @Field(type = FieldType.Date, format = DateFormat.epoch_millis)
     private Instant generatedAt;
 
     protected BriefingDocument() {

@@ -1,0 +1,187 @@
+/*
+ * Tema oscuro "consola de operaciones" para el cliente de escritorio.
+ * Paleta pensada para acompañar el mapa (tonos azul/verde de carta nautica) sin competir
+ * con el, y para que las alertas (banner, boton "Marcar perdido") destaquen de verdad.
+ */
+
+.root {
+    -fx-font-family: "Segoe UI", "Verdana", sans-serif;
+    -fx-font-size: 12px;
+    -fx-background-color: #10161c;
+    -fx-text-fill: #d7e1e8;
+}
+
+.label {
+    -fx-text-fill: #c3d0d8;
+}
+
+/* ---------- estructura: panel izquierdo como "consola" ---------- */
+
+.side-panel {
+    -fx-background-color: #10161c;
+}
+
+.app-title {
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #eaf2f6;
+}
+
+.app-subtitle {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: #5f7787;
+}
+
+.panel-section {
+    -fx-background-color: #161e26;
+    -fx-background-radius: 6;
+    -fx-border-color: #26323b;
+    -fx-border-radius: 6;
+    -fx-padding: 10;
+}
+
+.section-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #6fa9c9;
+}
+
+/* ---------- botones ---------- */
+
+.button {
+    -fx-background-color: #1c2830;
+    -fx-text-fill: #d7e1e8;
+    -fx-background-radius: 4;
+    -fx-border-color: #33424c;
+    -fx-border-radius: 4;
+    -fx-border-width: 1;
+    -fx-padding: 6 12;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: #24323c;
+    -fx-border-color: #435564;
+}
+
+.button:armed {
+    -fx-background-color: #141e26;
+}
+
+.button:disabled {
+    -fx-opacity: 0.45;
+    -fx-cursor: default;
+}
+
+.button-primary {
+    -fx-background-color: #2f8fa8;
+    -fx-border-color: #3ba9c6;
+    -fx-text-fill: #08181d;
+    -fx-font-weight: bold;
+}
+
+.button-primary:hover {
+    -fx-background-color: #39a3bf;
+}
+
+.button-danger {
+    -fx-background-color: #3a1c1c;
+    -fx-border-color: #6b3030;
+    -fx-text-fill: #f0c9c9;
+}
+
+.button-danger:hover {
+    -fx-background-color: #4a2222;
+    -fx-border-color: #8a3c3c;
+}
+
+/* ---------- lista de misiones ---------- */
+
+.list-view {
+    -fx-background-color: #0d1217;
+    -fx-control-inner-background: #0d1217;
+    -fx-border-color: #232f38;
+    -fx-border-radius: 4;
+}
+
+.list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #b9c7d0;
+    -fx-padding: 7 10;
+}
+
+.list-cell:filled:hover {
+    -fx-background-color: #182029;
+}
+
+.list-cell:filled:selected {
+    -fx-background-color: #204a5c;
+    -fx-text-fill: #eef6fa;
+}
+
+/* ---------- filas de escoltas ---------- */
+
+.escort-row {
+    -fx-background-color: #0d1217;
+    -fx-background-radius: 4;
+    -fx-padding: 6 8;
+    -fx-border-color: #232f38;
+    -fx-border-radius: 4;
+}
+
+.escort-callsign {
+    -fx-text-fill: #9fd0e6;
+    -fx-font-weight: bold;
+}
+
+/* ---------- banner de alerta ---------- */
+
+.alert-banner {
+    -fx-font-size: 12.5px;
+    -fx-padding: 10 14;
+}
+
+.alert-banner-ok {
+    -fx-background-color: #131b21;
+    -fx-text-fill: #7c8f9a;
+    -fx-border-color: #232f38;
+    -fx-border-width: 0 0 1 0;
+}
+
+.alert-banner-alarm {
+    -fx-background-color: #4a1414;
+    -fx-text-fill: #ffe3e3;
+    -fx-font-weight: bold;
+    -fx-border-color: #7a2020;
+    -fx-border-width: 0 0 2 0;
+}
+
+/* ---------- controles de formulario (dialogo nueva/editar mision) ---------- */
+
+.text-field, .text-area, .combo-box, .date-picker, .spinner {
+    -fx-background-color: #0d1217;
+    -fx-text-fill: #d7e1e8;
+    -fx-border-color: #33424c;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+}
+
+.text-field:focused, .text-area:focused, .combo-box:focused, .date-picker:focused {
+    -fx-border-color: #3ba9c6;
+}
+
+.combo-box .list-cell {
+    -fx-text-fill: #d7e1e8;
+}
+
+.text-area .content {
+    -fx-background-color: #0d1217;
+}
+
+.scroll-pane, .scroll-pane .viewport {
+    -fx-background-color: #10161c;
+}
+
+.scroll-pane > .corner {
+    -fx-background-color: #10161c;
+}
